@@ -28,6 +28,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"fmt"
 )
 
 const mainTF = `
@@ -46,7 +47,7 @@ module "inner" {
 
 const innerTF = `
 resource "aws_vpc" "inner" {
-  cidr_block = "10.0.0.0/8"
+  cidr_block = "10.0.0.0/16"
 }
 `
 
@@ -69,7 +70,7 @@ const expected = `{
     "destroy": false,
     "inner": {
         "aws_vpc.inner": {
-            "cidr_block": "10.0.0.0/8",
+            "cidr_block": "10.0.0.0/16",
             "default_network_acl_id": "",
             "default_route_table_id": "",
             "default_security_group_id": "",
@@ -92,7 +93,8 @@ func Test(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	fmt.Printf("dir %v", dir)
+	//defer os.RemoveAll(dir)
 
 	mainPath := filepath.Join(dir, "main.tf")
 	if err := ioutil.WriteFile(mainPath, []byte(mainTF), 0644); err != nil {
@@ -108,7 +110,9 @@ func Test(t *testing.T) {
 	}
 
 	planPath := filepath.Join(dir, "terraform.tfplan")
+	fmt.Printf("planPath %v", planPath)
 	mustRun(t, "terraform", "get", dir)
+	mustRun(t, "terraform", "init", dir)
 	mustRun(t, "terraform", "plan", "-out="+planPath, dir)
 
 	j, err := tfjson(planPath)
